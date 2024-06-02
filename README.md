@@ -3,3 +3,7 @@ Repository for the prototypical implementation of AutoML4ClustDR, which is built
 Furthermore it can be chosen how the data reduction should be applied. 
 
 
+# Running AutoML4ClustDR
+
+Use Python 3.9 to ensure stability. Package requirements for running the code can be found in the requirements.txt
+
