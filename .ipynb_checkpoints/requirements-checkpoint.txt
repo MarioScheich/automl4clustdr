@@ -1,0 +1,14 @@
+automl4clust==0.1.0
+ConfigSpace==0.4.21
+ConfigSpace==0.7.1
+hdbscan==0.8.27
+matplotlib==3.6.0
+numpy==1.22.4
+pandas==2.2.2
+pymfe==0.4.1
+scikit_learn==0.24.2
+scipy==1.13.1
+setuptools==59.2.0
+smac==1.2
+substrat_automl==0.0.5
+Utils==1.0.2
