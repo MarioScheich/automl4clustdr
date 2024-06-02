@@ -8,7 +8,7 @@ from sklearn.mixture import GaussianMixture
 
 from ClusteringCS import ClusteringCS
 from ClusteringCS.ClusteringCS import MEAN_SHIFT_ALGORITHM, GMM_ALGORITHM
-from Metrics.MetricHandler import MetricCollection, MetricType
+from Metrics.MetricHandler import CVICollection, MetricType
 from DataReduction import DataReductionHandler as dr
 import numpy as np
 
@@ -65,7 +65,7 @@ def smac_function(config, optimizer_instance, budget=0, **kwargs): #budget_indic
         # todo: we could use ARI here?
         return score#, add_info
 
-    int_metrics = MetricCollection.internal_metrics
+    int_metrics = CVICollection.internal_metrics
     for int_metric in int_metrics:
       #  int_metric_time = time.time()
         int_metric_score = int_metric.score_metric(X, labels=y)

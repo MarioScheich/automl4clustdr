@@ -19,7 +19,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from ClusteringCS import ClusteringCS
-from Metrics import DunnIndex, CogginsJain, COP_Index
+from CVI import DunnIndex, CogginsJain, COP_Index
 
 """
 Responsible for everything related to Metrics.
@@ -28,7 +28,7 @@ and the MetricEvaluator.
 """
 
 
-class MetricResult:
+class CVIResult:
     """
         Class that describes the information that is saved for each metric after calculating the metric result for a
         given kmeans result. Is used to represent the result of the MetricEvaluator.run_metrics() method.
@@ -44,7 +44,6 @@ class MetricResult:
 class MetricType:
     EXTERNAL = "External"
     INTERNAL = "Internal"
-    COMPLEXITY_MEASURE = "CM"
 
 
 class MetricObjective:
@@ -52,10 +51,10 @@ class MetricObjective:
     MAXIMIZE = "maximize"
 
 
-class Metric:
+class CVI:
     """
         Basic entity that describes a metric. For each metric there is one instance of this class which will be saved in
-        the MetricCollection class.
+        the CVICollection class.
         This class is also responsible for evaluating the metric score in a generic way.
     """
 
@@ -67,7 +66,7 @@ class Metric:
         self.metric_objective = metric_objective
 
     def get_abbrev(self):
-        return MetricCollection.METRIC_ABBREVIATIONS[self.name]
+        return CVICollection.METRIC_ABBREVIATIONS[self.name]
 
     def score_metric(self, data, labels=None, true_labels=None, y_train=None):
 
@@ -115,8 +114,6 @@ class Metric:
         elif self.metric_type == MetricType.EXTERNAL:
             score = self.score_function(true_labels, labels)
         # if complexity measure we need target values from the data
-        elif self.metric_type == MetricType.COMPLEXITY_MEASURE:
-            score = self.score_function(data, labels, y_train)
         else:
             logging.error("There was an unknown metric type which couldn't be calculated. The metric is " + self.name)
 
@@ -136,17 +133,6 @@ def dunn_score(X, labels):
     return DunnIndex.dunn_fast(X, labels)
 
 
-def fisher_disc_score(data, labels, y_train):
-    return fdr_score(data, labels, y_train)
-
-
-def error_rate_knn_score(data, labels, y_train):
-    return error_rate_knn(data, labels, y_train)
-
-
-def pca_to_raw_score(data, labels, y_train):
-    return pca_to_raw_ratio(data, labels, y_train)
-
 
 def density_based_score(X, labels):
     try:
@@ -154,37 +140,6 @@ def density_based_score(X, labels):
     except ValueError as ve:
         logging.error(f"Error occured: {ve}")
         return -1.0
-
-
-def error_rate_knn(X, labels):
-    # perform cross validation using leave-one-out method
-    model = KNeighborsClassifier()
-    cv = LeaveOneOut()
-    scores = cross_val_score(model, X, labels, scoring='accuracy',
-                             cv=cv, n_jobs=-1)
-    accuracy_mean = mean(scores)
-    # get error rate
-    error_rate = 1-accuracy_mean
-    return 1-error_rate
-
-
-def pca_to_raw_ratio(X, labels):
-    # get raw dimensions
-    regular_dimensions = X.shape[1]
-    # normalize data
-    x = StandardScaler().fit_transform(X)
-    # pca to keep 95% of original data variations
-    pca = PCA(0.95)
-    reduced_dataset = pca.fit_transform(x)
-    # get reduced dimensions
-    reduced_dimensions = reduced_dataset.shape[1]
-    # calculate ratio
-    ratio = reduced_dimensions/regular_dimensions
-    return 1-ratio
-
-
-
-
 
 
 class MLPMetric(Metric):
@@ -199,7 +154,7 @@ class MLPMetric(Metric):
         metric_scores = []
 
         # calculate all internal metrics
-        for metric in MetricCollection.internal_metrics:
+        for metric in CVICollection.internal_metrics:
             metric_score = metric.score_metric(data, labels)
             print(f"metric score for {metric.name} is: {metric_score}")
             if math.isnan(metric_score) or math.isinf(metric_score):
@@ -213,7 +168,7 @@ class MLPMetric(Metric):
         return ari_score[0]
 
 
-class MetricCollection:
+class CVICollection:
     """
         Contains all metrics that are used for the experiments. The metrics can be get by either calling all_metrics or
         using the get_all_metrics_sorted method.
@@ -223,30 +178,24 @@ class MetricCollection:
     # SILHOUETTE_SAMPLE_10 = Metric(SILHOUETTE_SAMPLE, metrics.silhouette_score, MetricType.INTERNAL)
 
     # internal scores to maximize
-    SILHOUETTE = Metric("Silhouette", metrics.silhouette_score, MetricType.INTERNAL)
-    CALINSKI_HARABASZ = Metric("Calinski-Harabasz", metrics.calinski_harabasz_score, MetricType.INTERNAL)
-    DUNN_INDEX = Metric("Dunn Index", dunn_score, MetricType.INTERNAL)
-    DENSITY_BASED_VALIDATION = Metric("DBCV", density_based_score, MetricType.INTERNAL)
-    COGGINS_JAIN_INDEX = Metric("Coggins Jain Index", CogginsJain.coggins_jain_score, MetricType.INTERNAL)
-
-    # complexity measures
-    FISHER_DISCRIMINANT_RATIO = Metric("Fisher Disc Ratio", fisher_disc_score, MetricType.COMPLEXITY_MEASURE)
-    PCA_TO_RAW_DIMENSIONS_RATIO = Metric("PCA Reduced to Raw Dimensions Ratio", pca_to_raw_score,
-                                         MetricType.COMPLEXITY_MEASURE)
-    ERROR_RATE_KNN = Metric("Error Rate KNN", error_rate_knn_score, MetricType.COMPLEXITY_MEASURE)
+    SILHOUETTE = CVI("Silhouette", metrics.silhouette_score, MetricType.INTERNAL)
+    CALINSKI_HARABASZ = CVI("Calinski-Harabasz", metrics.calinski_harabasz_score, MetricType.INTERNAL)
+    DUNN_INDEX = CVI("Dunn Index", dunn_score, MetricType.INTERNAL)
+    DENSITY_BASED_VALIDATION = CVI("DBCV", density_based_score, MetricType.INTERNAL)
+    COGGINS_JAIN_INDEX = CVI("Coggins Jain Index", CogginsJain.coggins_jain_score, MetricType.INTERNAL)
 
     # internal scores to maximize
-    DAVIES_BOULDIN = Metric("Davies-Bouldin", metrics.davies_bouldin_score, MetricType.INTERNAL,
+    DAVIES_BOULDIN = CVI("Davies-Bouldin", metrics.davies_bouldin_score, MetricType.INTERNAL,
                             MetricObjective.MINIMIZE)
-    COP_SCORE = Metric("COP", COP_Index.cop_score, MetricType.INTERNAL, MetricObjective.MINIMIZE)
+    COP_SCORE = CVI("COP", COP_Index.cop_score, MetricType.INTERNAL, MetricObjective.MINIMIZE)
 
     # external scores
-    ADJUSTED_RAND = Metric("Adjusted Rand", metrics.adjusted_rand_score, MetricType.EXTERNAL)
-    ADJUSTED_MUTUAL = Metric("Adjusted Mutual", metrics.adjusted_mutual_info_score, MetricType.EXTERNAL)
-    HOMOGENEITY = Metric("Homogeneity", metrics.homogeneity_score, MetricType.EXTERNAL)
-    V_MEASURE = Metric("V-measure", metrics.v_measure_score, MetricType.EXTERNAL)
-    COMPLETENESS_SCORE = Metric("Completeness", metrics.completeness_score, MetricType.EXTERNAL)
-    FOWLKES_MALLOWS = Metric("Folkes-Mallows", metrics.fowlkes_mallows_score, MetricType.EXTERNAL)
+    ADJUSTED_RAND = CVI("Adjusted Rand", metrics.adjusted_rand_score, MetricType.EXTERNAL)
+    ADJUSTED_MUTUAL = CVI("Adjusted Mutual", metrics.adjusted_mutual_info_score, MetricType.EXTERNAL)
+    HOMOGENEITY = CVI("Homogeneity", metrics.homogeneity_score, MetricType.EXTERNAL)
+    V_MEASURE = CVI("V-measure", metrics.v_measure_score, MetricType.EXTERNAL)
+    COMPLETENESS_SCORE = CVI("Completeness", metrics.completeness_score, MetricType.EXTERNAL)
+    FOWLKES_MALLOWS = CVI("Folkes-Mallows", metrics.fowlkes_mallows_score, MetricType.EXTERNAL)
 
     # abbreviations are useful for, e.g., plots
     METRIC_ABBREVIATIONS = {
@@ -264,9 +213,6 @@ class MetricCollection:
         COMPLETENESS_SCORE.name: "CS",
         FOWLKES_MALLOWS.name: "FM",
         "MLPMetric": "MLP",
-        FISHER_DISCRIMINANT_RATIO.name: "FDR",
-        PCA_TO_RAW_DIMENSIONS_RATIO.name: "PCARR",
-        ERROR_RATE_KNN.name: "EKNN"
     }
     internal_metrics = [CALINSKI_HARABASZ,
                         DAVIES_BOULDIN,
@@ -282,11 +228,9 @@ class MetricCollection:
                         COMPLETENESS_SCORE,
                         FOWLKES_MALLOWS,
                         HOMOGENEITY, V_MEASURE]
-    complexity_measures = [FISHER_DISCRIMINANT_RATIO,
-                           PCA_TO_RAW_DIMENSIONS_RATIO,
-                           ERROR_RATE_KNN
-                           ]
-    all_metrics = external_metrics + internal_metrics + complexity_measures
+    
+    all_metrics = external_metrics + internal_metrics
+    
     experiment_metrics = [CALINSKI_HARABASZ, DAVIES_BOULDIN,
                           # SILHOUETTE,
                           ADJUSTED_MUTUAL]
@@ -294,8 +238,8 @@ class MetricCollection:
     @staticmethod
     def get_metric_by_abbrev(metric_abbrev):
         print(metric_abbrev)
-        for metric in MetricCollection.all_metrics:
-            if MetricCollection.METRIC_ABBREVIATIONS[metric.name] == metric_abbrev:
+        for metric in CVICollection.all_metrics:
+            if CVICollection.METRIC_ABBREVIATIONS[metric.name] == metric_abbrev:
                 return metric
 
     @staticmethod
@@ -305,25 +249,25 @@ class MetricCollection:
         value to their corresponding name.
         :return:
         """
-        MetricCollection.all_metrics.sort(key=lambda x: x.name)
-        return MetricCollection.all_metrics
+        CVICollection.all_metrics.sort(key=lambda x: x.name)
+        return CVICollection.all_metrics
 
     @staticmethod
     def get_sorted_abbreviations_by_type():
-        return [MetricCollection.METRIC_ABBREVIATIONS[metric.name] for metric
-                in MetricCollection.all_metrics]
+        return [CVICollection.METRIC_ABBREVIATIONS[metric.name] for metric
+                in CVICollection.all_metrics]
 
     @staticmethod
     def get_sorted_abbreviations_internal_by_type():
-        return [MetricCollection.METRIC_ABBREVIATIONS[metric.name] for metric
-                in MetricCollection.internal_metrics]
+        return [CVICollection.METRIC_ABBREVIATIONS[metric.name] for metric
+                in CVICollection.internal_metrics]
 
     @staticmethod
     def get_abrev_for_metric(metric_name):
-        return MetricCollection.METRIC_ABBREVIATIONS[metric_name]
+        return CVICollection.METRIC_ABBREVIATIONS[metric_name]
 
 
-class MetricEvaluator:
+class CVIEvaluator:
 
     @staticmethod
     def run_metrics(data, true_labels, labels):
@@ -336,13 +280,13 @@ class MetricEvaluator:
         logging.info("start calculating metrics")
         result = []
 
-        for metric in MetricCollection.all_metrics:
+        for metric in CVICollection.all_metrics:
             metric_name = metric.name
             logging.info("start calculation for " + metric_name)
             metric_execution_start = time.time()
             score = metric.score_metric(data, labels=labels, true_labels=true_labels)
             metric_execution_time = time.time() - metric_execution_start
-            metric_result = MetricResult(name=metric.name, score=score, execution_time=metric_execution_time,
+            metric_result = CVIResult(name=metric.name, score=score, execution_time=metric_execution_time,
                                          metric_type=metric.metric_type)
             logging.info("Finished {} with score {} and execution time {}"
                          .format(metric_name, score, metric_execution_time))

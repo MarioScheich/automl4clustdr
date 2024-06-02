@@ -23,13 +23,13 @@ from smac.initial_design.sobol_design import SobolDesign
 from smac.scenario.scenario import Scenario
 
 from ClusteringCS import ClusteringCS
-from Metrics import MetricHandler
+from CVI import MetricHandler
 from Optimizer.smac_function_ import smac_function
 
 from ClusteringCS.ClusteringCS import build_config_space, build_partitional_config_space, \
     build_all_algos_dim_reduction_space, build_partitional_dim_reduction_space, build_all_algos_space, \
     CONFIG_SPACE_MAPPING, build_kmeans_space, execute_algorithm_from_config
-from Metrics.MetricHandler import MetricCollection
+from Metrics.MetricHandler import CVICollection
 from DataReduction import DataReductionHandler as dr
 
 
@@ -101,14 +101,14 @@ class AbstractOptimizer(ABC):
     n_loops = 50
 
 
-    def __init__(self, dataset, metric: Union[Type[MetricHandler.Metric], MetricHandler.MLPMetric] = MetricCollection.CALINSKI_HARABASZ,
+    def __init__(self, dataset, metric: Union[Type[MetricHandler.Metric], MetricHandler.MLPMetric] = CVICollection.CALINSKI_HARABASZ,
                  cs: Type[ConfigurationSpace] = None, n_loops=None, budgets=None, output_dir=
                  f"/home/tschecds/automlclustering_old/smac/mario_example/",
                  cut_off_time_minutes=5 * 60, wallclock_limit=30 * 60, true_labels=None, data_reduction: str = None, data_reduction_param: dict = None,      
                  optimization: str = "bayesian", initial_budget = None, max_budget = None ):
         """
         :param dataset: np.array of the dataset (without the labels)
-        :param metric: A metric from the MetricCollection. Default is CALINSKI_HARABASZ
+        :param metric: A metric from the CVICollection. Default is CALINSKI_HARABASZ
         :param cs: ConfigurationSpace object that is used by the optimizer. If not passed, then default is used.
         You can also pass a string, i.e., "partitional" stands for three partitional clustering algorithms (GMM, kMeans, MiniBatchKMeans).
         The value "kmeans" stands for only the kmeans algorithm. The default for the k_range is (2, 200).
@@ -123,7 +123,7 @@ class AbstractOptimizer(ABC):
             self.output_dir = f"/home/tschecds/automlclustering_old/smac/mario_example/" #f"/home/ubuntu/automlclustering/smac/{self.get_abbrev()}/"
 
         if not metric:
-            self.metric = MetricCollection.CALINSKI_HARABASZ
+            self.metric = CVICollection.CALINSKI_HARABASZ
         else:
             self.metric = metric
         self.optimization = optimization
@@ -353,7 +353,7 @@ class SMACOptimizer(AbstractOptimizer):
                     y_pred = [-2 for _ in self.dataset]
 
                 additional_metrics = {}
-                for internal_metric in MetricCollection.internal_metrics:
+                for internal_metric in CVICollection.internal_metrics:
                     if internal_metric.get_abbrev() in add_info:
                         metric_score = add_info[internal_metric.get_abbrev()]
                         additional_metrics[internal_metric.get_abbrev()] = metric_score
@@ -468,7 +468,7 @@ if __name__ =='__main__':
 
     print(np.unique(y_pred))
     # print(y_pred)
-    for metric in MetricCollection.internal_metrics:
+    for metric in CVICollection.internal_metrics:
         start = time.time()
         metric.score_metric(X, y_pred)
         print(f"Execution of metric {metric.get_abbrev()} took {time.time() - start}s")
@@ -487,10 +487,10 @@ if __name__ =='__main__':
     plt.show()
     t1 = time.time() - t0
     """
-    ari = MetricCollection.ADJUSTED_RAND.score_metric(data=X, labels=y_pred, true_labels=y)
+    ari = CVICollection.ADJUSTED_RAND.score_metric(data=X, labels=y_pred, true_labels=y)
     print(f"took overall {time.time() - t0}")
-    ami = MetricCollection.ADJUSTED_MUTUAL.score_metric(data=X, labels=y_pred, true_labels=y)
-    dbcv = MetricCollection.DENSITY_BASED_VALIDATION.score_metric(data=X, labels=y_pred)
+    ami = CVICollection.ADJUSTED_MUTUAL.score_metric(data=X, labels=y_pred, true_labels=y)
+    dbcv = CVICollection.DENSITY_BASED_VALIDATION.score_metric(data=X, labels=y_pred)
     print(f"DBCV score is: {dbcv}")
     print(f"ari is: {ari}")
     print(f"ami is: {ami}")

@@ -23,13 +23,13 @@ from smac.initial_design.sobol_design import SobolDesign
 from smac.scenario.scenario import Scenario
 
 from ClusteringCS import ClusteringCS
-from Metrics import MetricHandler
+from CVI import MetricHandler
 from Optimizer.smac_function_ import smac_function
 
 from ClusteringCS.ClusteringCS import build_config_space, build_partitional_config_space, \
     build_all_algos_dim_reduction_space, build_partitional_dim_reduction_space, build_all_algos_space, \
     CONFIG_SPACE_MAPPING, build_kmeans_space, execute_algorithm_from_config
-from Metrics.MetricHandler import MetricCollection
+from Metrics.MetricHandler import CVICollection
 from DataReduction import DataReductionHandler as dr
 
 
