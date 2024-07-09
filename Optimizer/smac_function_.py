@@ -8,7 +8,7 @@ from sklearn.mixture import GaussianMixture
 
 from ClusteringCS import ClusteringCS
 from ClusteringCS.ClusteringCS import MEAN_SHIFT_ALGORITHM, GMM_ALGORITHM
-from Metrics.MetricHandler import CVICollection, MetricType
+from CVI.MetricHandler import CVICollection, MetricType
 from DataReduction import DataReductionHandler as dr
 import numpy as np
 
@@ -18,6 +18,7 @@ def smac_function(config, optimizer_instance, budget=0, **kwargs): #budget_indic
     metric = optimizer_instance.metric
     true_labels = optimizer_instance.true_labels
     algorithm_name = config["algorithm"]
+    #codeblock active when Reductionband is chosen
     if budget and budget > 0:
         print("budget:"+ str(budget))
         reduction = list(kwargs.values())
@@ -27,8 +28,8 @@ def smac_function(config, optimizer_instance, budget=0, **kwargs): #budget_indic
         if data_reduction == "UniformRandomSampling" or data_reduction == "LightWeightCoreset":
             # round size to nearest integer in order to avoid errors
             data_reduction_param['sample_size'] = round(len(X)*(budget/max_budget))
-            # set minimum sample_size to 50 in order to avoid more clusters than samples
-            # TODO: should be tied to maximum of possible clusters for optimiziation
+            # set minimum sample_size to 50 in order to avoid more clusters than samples, modify based on your chosen maximum number of clusters
+            # TODO: should automatically be tied to maximum of possible clusters for optimiziation to increase ease of use
             if data_reduction_param['sample_size'] < 50:
                 data_reduction_param['sample_size'] = 50 
         else:
@@ -63,7 +64,7 @@ def smac_function(config, optimizer_instance, budget=0, **kwargs): #budget_indic
         # if we are using an internal metric, this is the online phase and we do not want to calculate all metrics
         # additionally
         # todo: we could use ARI here?
-        return score#, add_info
+        return score, add_info
 
     int_metrics = CVICollection.internal_metrics
     for int_metric in int_metrics:
@@ -72,4 +73,4 @@ def smac_function(config, optimizer_instance, budget=0, **kwargs): #budget_indic
      #   int_metric_time = time.time() - int_metric_time
         add_info[int_metric.get_abbrev()] = int_metric_score
     #    add_info[int_metric.get_abbrev()] = int_metric_time
-    return score#, add_info
+    return score, add_info

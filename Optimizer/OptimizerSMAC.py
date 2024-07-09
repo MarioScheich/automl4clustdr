@@ -29,7 +29,7 @@ from Optimizer.smac_function_ import smac_function
 from ClusteringCS.ClusteringCS import build_config_space, build_partitional_config_space, \
     build_all_algos_dim_reduction_space, build_partitional_dim_reduction_space, build_all_algos_space, \
     CONFIG_SPACE_MAPPING, build_kmeans_space, execute_algorithm_from_config
-from Metrics.MetricHandler import CVICollection
+from CVI.MetricHandler import CVICollection
 from DataReduction import DataReductionHandler as dr
 
 
@@ -101,7 +101,7 @@ class AbstractOptimizer(ABC):
     n_loops = 50
 
 
-    def __init__(self, dataset, metric: Union[Type[MetricHandler.Metric], MetricHandler.MLPMetric] = CVICollection.CALINSKI_HARABASZ,
+    def __init__(self, dataset, metric: Union[Type[MetricHandler.CVI], MetricHandler.MLPMetric] = CVICollection.CALINSKI_HARABASZ,
                  cs: Type[ConfigurationSpace] = None, n_loops=None, budgets=None, output_dir=
                  f"/home/tschecds/automlclustering_old/smac/mario_example/",
                  cut_off_time_minutes=5 * 60, wallclock_limit=30 * 60, true_labels=None, data_reduction: str = None, data_reduction_param: dict = None,      
@@ -115,12 +115,15 @@ class AbstractOptimizer(ABC):
         You can also use the file ClusteringCS.py where the strings for the Configspace possibilities are contained.
         :param n_loops: Number of loops that the optimizer performs, i.e., the number of configurations to execute.
         :param output_dir: Output directory where smac stores the runhistory.
+        :param data_reduction: Name of the chosen data reduction method or Substrat
+        :param optimization: optimizer used in context of optional data reduction
+        :param data_reduction_param: data reduction parameters for the chosen data reduction method
         """
 
         if output_dir:
             self.output_dir = output_dir
         else:
-            self.output_dir = f"/home/tschecds/automlclustering_old/smac/mario_example/" #f"/home/ubuntu/automlclustering/smac/{self.get_abbrev()}/"
+            self.output_dir = f"/home/tschecds/automlclustering_old/smac/mario_example/"#f"/home/ubuntu/automlclustering/smac/{self.get_abbrev()}/"
 
         if not metric:
             self.metric = CVICollection.CALINSKI_HARABASZ
@@ -233,11 +236,12 @@ class SMACOptimizer(AbstractOptimizer):
         """
         
 
-        # subsamples of datasets, key ist the budget and value are the indices of the samples
+        # subsamples of datasets, key is the budget and value are the indices of the samples
         # not used for SMACOptimizer but for Hyperband and BOHB
         #budget_indices = {b: np.random.choice(len(self.dataset), int(len(self.dataset) * int(b) / 10)) for b in
                           #self.budgets}
-        
+
+        #add data reduction method, parameters and budget to kwargs for Reductionband approach
         if self.data_reduction and self.optimization == "hyperband":
 
             kwargs = {"data_reduction": self.data_reduction, "data_reduction_param": self.data_reduction_param, 'max_budget': self.max_budget}
@@ -246,6 +250,7 @@ class SMACOptimizer(AbstractOptimizer):
             tae_algorithm = partial(smac_function, optimizer_instance=self, **kwargs)
         else: 
 
+            #dummy kwargs if not needed, don't know better solution for the moment
             kwargs = {"doesn't_matter": "at_all"}
         tae_algorithm = partial(smac_function, optimizer_instance=self, **kwargs) #budget_indices=budget_indices)
 

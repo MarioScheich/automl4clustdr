@@ -7,7 +7,8 @@ import math
 import random
 from SubStrat.summary_algorithm.genetic_sub_algorithm import GeneticSubAlgorithmn
 import sys
-sys.path.insert(1,"/home/tschecds/automlclustering_old/src/DataReduction/Laplacian_Score_Feature_Selection")
+#insert fitting path for your system
+sys.path.insert(1,"/home/tschecds/automl4clustdr/DataReduction/Laplacian_Score_Feature_Selection")
 
 import lp_score
 
@@ -171,11 +172,22 @@ def protras_size_parameter(X, n):
 
 class UniformRandomSampling:
 
+    """
+    Class for uniform random sampling
+        
+    """
     
     def __init__(self, dataset, sample_size: int):
         self.dataset= dataset
         self.sample_size= sample_size
 
+
+        """
+        :param dataset: np.array of the dataset (without the labels)
+        :param sample_size: number of instances in subset
+        
+        """
+        
     def get_name(self):
 
         return self__name__
@@ -188,12 +200,22 @@ class UniformRandomSampling:
 
 class LightWeightCoreset:
 
+    """
+    Class for importance sampling using lightweight coresets
+        
+    """
     
     def __init__(self, dataset, sample_size: int):
         self.dataset= dataset
         self.sample_size= sample_size
 
-    
+
+        """
+        :param dataset: np.array of the dataset (without the labels)
+        :param sample_size: number of instances in subset
+        
+        """
+        
     def get_name(self):
 
         return self__name__
@@ -206,11 +228,20 @@ class LightWeightCoreset:
 
 class ProTras:
 
+    """
+    Class for ProTraS Algorithm
+        
+    """
     
     def __init__(self, dataset, sample_size: int):
         self.dataset= dataset
         self.sample_size= sample_size
 
+        """
+        :param dataset: np.array of the dataset (without the labels)
+        :param sample_size: number of instances in subset
+        
+        """
     
     def get_name(self):
 
@@ -228,11 +259,20 @@ class ProTras:
 
 class Variance:
 
+    """
+    Class for variance for feature selection
+        
+    """
     
     def __init__(self, dataset, feature_number: int = 7):
         self.dataset= dataset
         self.feature_number= feature_number
 
+        """
+        :param dataset: np.array of the dataset (without the labels)
+        :param feature_number: number of features that are to remain
+        
+        """
 
     def get_name(self):
 
@@ -299,16 +339,23 @@ class LaplacianScore:
         
     """
     
-    def __init__(self, dataset, feature_number: int = 7, t_param = 625, neighbour_size: int = 5):
+    def __init__(self, dataset, feature_number: int = 7, t_param = 0, neighbour_size: int = 5):
+
         self.dataset=dataset
         self.feature_number=feature_number
         self.t_param=t_param
         self.neighbour_size=neighbour_size
 
+        if self.t_param == 0:
+            
+            self.t_param = self.dataset.shape[1]
+            
+
         """
         :param dataset: np.array of the dataset (without the labels)
         :param feature_number: number of features that are to remain
-        :param t_param: Value used in the weighting function, default is the RBF Kernel with t=25^2
+        :param t_param: Appropriate normalization value used in the weighting function, default is the number of features of original dataset,
+        also use 0 to automatically assign number of features to t
         :param neighbour_size: k used for the knn-algorithm used to build the similarity graph
         
         """
@@ -338,7 +385,7 @@ class LaplacianScore:
         
         return subset
 
-#genetic algorithm needs pd dataframe, fs-methods need np.array, changing between them might make substrat useless runtime-wise
+#genetic algorithm needs pd dataframe, fs-methods need np.array, changing between them makes substrats runtime suffer
 class SPEC:
 
     """
@@ -382,7 +429,7 @@ class SPEC:
 
         return subset
 
-#extra class for substrat needed since dataset is only passed to the score function of a fitness class in GeneticAlgorithm of Substrat
+#extra classes for substrat needed since dataset is only passed to the score function of a fitness class in GeneticAlgorithm of Substrat
 
 class Spec_Fitness:
 
@@ -415,6 +462,7 @@ class Spec_Fitness:
         print(dist)
         return 1.0 / dist if dist != 0 else float('inf')
 
+#backup classes for individual Spec functions, should not be needed, can be used if problems with calling specific Spec function through Spec_Fitness arise        
 
 class Spec_Fitness_2:
 
@@ -511,7 +559,13 @@ class Substrat:
         self.sample_size= sample_size
         self.fitness_function= fitness_function
         
-
+        """
+        :param dataset: np.array of the dataset (without the labels)
+        :param feature_number: number of features that are to remain
+        :param sample_size: number of instances in subset
+        :param fitness_function: function call for the desired fitness function out of {Variance, LP-Score, SPEC 1, SPEC 2}
+        
+        """
 
     def get_name(self):
 
@@ -523,6 +577,7 @@ class Substrat:
             col = str(i)
             col_list.append(col)
         pd_dataset =  pd.DataFrame(self.dataset, columns=col_list)
+        #call Substrats genetic algorithm
         reduction_instance = GeneticSubAlgorithmn(dataset = pd_dataset, target_column_name = "0", sub_col_size = self.feature_number, 
                  sub_row_size = self.sample_size, population_size = 10, fitness = self.fitness_function, mutation_rate = 0.04, 
                  num_generation = 1, stagnation_limit = 20, time_limit = float(5*60))
